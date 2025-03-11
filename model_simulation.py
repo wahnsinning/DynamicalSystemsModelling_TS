@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 import matplotlib.pyplot as plt
 
 from model import simulate_dynamics, plot_trajectory
@@ -70,7 +71,7 @@ def test_trial_type(current_task, former_task):
 
 def initialize_task():
     # initialization of the task
-    task = np.random.randint(0, 1)
+    task = random.randint(0, 1)
 
     if task == 0:
         I1 = 1

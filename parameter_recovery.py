@@ -50,8 +50,7 @@ def param_recovery(
         true_c = to_recover_c[run]
         true_alpha = to_recover_alpha[run]
         true_gamma = to_recover_gamma[run]
-
-        print(true_alpha, true_gamma)
+        
         # Log those parameters
         true_g_log[run] = true_g
         true_c_log[run] = true_c
