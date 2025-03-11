@@ -256,7 +256,7 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
     if (bool_plot_trajectory == True) and (num_trials <= max_trails_plot):
         plot_trajectory(T, array_ts, array_x1, array_x2, array_P, num_trials)
     elif (bool_plot_trajectory == True) and (num_trials > max_trails_plot):
-        print(f"Ploting first {max_trails_plot} trails:")
+        print(f"Ploting first {max_trails_plot} trials:")
         plot_trajectory(
             T,
             array_ts[: max_trails_plot * num_sample_points_per_trial],
@@ -267,26 +267,3 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
         )
 
     return df
-
-
-def calculate_accuracy_per_condiiton(df):
-    """
-    Calculates the average accuracy for switch and repeat trials.
-    """
-    # filter the data for switch and repeat trials
-    switch_trials = df[df["trial_type"] == "switch"]
-    repeat_trials = df[df["trial_type"] == "repeat"]
-
-    # sum over response values for each condition
-    sum_accuracy_switch = switch_trials["response"].sum()
-    sum_accuracy_repeat = repeat_trials["response"].sum()
-
-    # get the number of switch and repeat trials
-    count_switch = len(switch_trials)
-    count_repeat = len(repeat_trials)
-
-    # calculate the average accuracy of each condition
-    average_accuracy_switch = sum_accuracy_switch / count_switch if count_switch > 0 else 0
-    average_accuracy_repeat = sum_accuracy_repeat / count_repeat if count_repeat > 0 else 0
-
-    return {"average_accuracy_switch": average_accuracy_switch, "average_accuracy_repeat": average_accuracy_repeat}
