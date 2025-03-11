@@ -1,0 +1,13 @@
+numpy
+matplotlib
+pandas
+seaborn
+arviz
+scipy
+ipython
+ipywidgets
+tqdm
+joblib
+notebook
+widgetsnbextension
+git+https://github.com/lnccbrown/HSSM.git
