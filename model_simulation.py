@@ -264,7 +264,10 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
         plot_trajectory(T, array_ts, array_x1, array_x2, array_P, inputs, feedback_log, num_trials)
     elif (bool_plot_trajectory == True) and (num_trials > max_trails_plot):
         print(f"Ploting first {max_trails_plot} trials:")
+<<<<<<< HEAD
         inputs = task_sequence["input"].apply(lambda x: 0 if x[0] != 1 else 1)
+=======
+>>>>>>> 12ee008436eeead1568f038fb2b93b70ca85ac39
         plot_trajectory(
             T,
             array_ts[: max_trails_plot * num_sample_points_per_trial],

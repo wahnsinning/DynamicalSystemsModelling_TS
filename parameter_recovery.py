@@ -51,7 +51,11 @@ def param_recovery(
         true_c = to_recover_c[run]
         true_alpha = to_recover_alpha[run]
         true_gamma = to_recover_gamma[run]
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 12ee008436eeead1568f038fb2b93b70ca85ac39
         # Log those parameters
         true_g_log[run] = true_g
         true_c_log[run] = true_c
