@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 import matplotlib.pyplot as plt
 
 from model import simulate_dynamics, plot_trajectory
@@ -70,7 +71,7 @@ def test_trial_type(current_task, former_task):
 
 def initialize_task():
     # initialization of the task
-    task = np.random.randint(0, 1)
+    task = random.randint(0, 1)
 
     if task == 0:
         I1 = 1
@@ -181,6 +182,8 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
     array_ts = []
 
     num_sample_points_per_trial = 100
+    feedback = 0  # feedback of first trail is 0 (neutral) correct -> 1, wrong -> -1
+    feedback_log = [feedback]
     for trial_number in range(num_trials):
 
         x_0 = np.array([x_1, x_2, P])
@@ -196,7 +199,7 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
             trial_type = None
 
         ts_values, x1_values, x2_values, P_values = simulate_dynamics(
-            T, x_0, g, alpha, gamma, input, sigma, num_sample_points=num_sample_points_per_trial
+            T, x_0, g, alpha, gamma, input, feedback, sigma, num_sample_points=num_sample_points_per_trial
         )  # run model i.e. solve OED
 
         activities_n_final = np.array([x1_values[-1], x2_values[-1]])  # get last values of neuron activity
@@ -210,6 +213,9 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
 
         correctness = get_correctness(correct_responses, choice)
 
+        # feedback of the current trail
+        feedback = 1 if correctness == 1 else -1
+        feedback_log.append(feedback)
         # log results
         df = log_data(
             df, trial_number, activities_n_final, current_task, trial_type, choice, correct_responses, correctness
@@ -253,39 +259,21 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
     ]
 
     if (bool_plot_trajectory == True) and (num_trials <= max_trails_plot):
-        plot_trajectory(T, array_ts, array_x1, array_x2, array_P, num_trials)
+        # get the task sequence in 0 and 1 , input [1,0] -> 0, input [0,1] -> 1
+        inputs = task_sequence["input"].apply(lambda x: 0 if x[0] != 1 else 1)
+        plot_trajectory(T, array_ts, array_x1, array_x2, array_P, inputs, feedback_log, num_trials)
     elif (bool_plot_trajectory == True) and (num_trials > max_trails_plot):
-        print(f"Ploting first {max_trails_plot} trails:")
+        print(f"Ploting first {max_trails_plot} trials:")
+        inputs = task_sequence["input"].apply(lambda x: 0 if x[0] != 1 else 1)
         plot_trajectory(
             T,
             array_ts[: max_trails_plot * num_sample_points_per_trial],
             array_x1[: max_trails_plot * num_sample_points_per_trial],
             array_x2[: max_trails_plot * num_sample_points_per_trial],
             array_P[: max_trails_plot * num_sample_points_per_trial],
+            inputs[:max_trails_plot],
+            feedback_log[:max_trails_plot],
             max_trails_plot,
         )
 
     return df
-
-
-def calculate_accuracy_per_condiiton(df):
-    """
-    Calculates the average accuracy for switch and repeat trials.
-    """
-    # filter the data for switch and repeat trials
-    switch_trials = df[df["trial_type"] == "switch"]
-    repeat_trials = df[df["trial_type"] == "repeat"]
-
-    # sum over response values for each condition
-    sum_accuracy_switch = switch_trials["response"].sum()
-    sum_accuracy_repeat = repeat_trials["response"].sum()
-
-    # get the number of switch and repeat trials
-    count_switch = len(switch_trials)
-    count_repeat = len(repeat_trials)
-
-    # calculate the average accuracy of each condition
-    average_accuracy_switch = sum_accuracy_switch / count_switch if count_switch > 0 else 0
-    average_accuracy_repeat = sum_accuracy_repeat / count_repeat if count_repeat > 0 else 0
-
-    return {"average_accuracy_switch": average_accuracy_switch, "average_accuracy_repeat": average_accuracy_repeat}

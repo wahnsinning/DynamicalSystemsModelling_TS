@@ -1,5 +1,6 @@
 import numpy as np
-from tqdm import tqdm
+import matplotlib.pyplot as plt
+from tqdm.notebook import tqdm
 from ctypes import ArgumentError
 from model_simulation import simulate_experiment
 from parameter_fitting import param_fit_grid_search_parallel
@@ -51,7 +52,6 @@ def param_recovery(
         true_alpha = to_recover_alpha[run]
         true_gamma = to_recover_gamma[run]
 
-        print(true_alpha, true_gamma)
         # Log those parameters
         true_g_log[run] = true_g
         true_c_log[run] = true_c
@@ -73,3 +73,18 @@ def param_recovery(
         LL_log[run] = best_LL
 
     return fitted_g_log, fitted_c_log, fitted_alpha_log, fitted_gamma_log, LL_log
+
+
+def plot_true_fitted_correlation(true_params, fitted_params, param_range, margin=0.1, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    ax.scatter(true_params, fitted_params, marker="o", color="red")
+    ax.set_xlabel("True")
+    ax.set_ylabel("Fitted")
+    pad = margin * (np.max(param_range) - np.min(param_range))
+    ax.set_xlim([np.min(param_range) - pad, np.max(param_range) + pad])
+    ax.set_ylim([np.min(param_range) - pad, np.max(param_range) + pad])
+    # ax.set_aspect('equal')
+    if ax == None:
+        plt.show()
+    return ax

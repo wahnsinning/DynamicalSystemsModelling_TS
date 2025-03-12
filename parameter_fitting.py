@@ -22,10 +22,15 @@ def compute_log_likelihood(df, T, x_0, g, c, alpha, gamma, sigma):
     LL = 0
     choices = df["choice_adjusted"].values
     tasks = df["task"].values
+    responses = df["response"].values
     num_trials = len(df)
     num_sample_points_per_trial = 100
 
     for trial_number in range(num_trials):
+        if trial_number == 0:
+            feedback = 0
+        else:
+            feedback = 1 if responses[trial_number] == 1 else -1
 
         # when computing the likelihood, we don't need to make a choice
         # instead, we observe the choice from the data
@@ -38,7 +43,7 @@ def compute_log_likelihood(df, T, x_0, g, c, alpha, gamma, sigma):
             input = np.array([0, 1])
 
         _, x1_values, x2_values, P_values = simulate_dynamics(
-            T, x_0, g, alpha, gamma, input, sigma, num_sample_points=num_sample_points_per_trial
+            T, x_0, g, alpha, gamma, input, feedback, sigma, num_sample_points=num_sample_points_per_trial
         )  # run model i.e. solve OED
 
         # update x_0
@@ -89,19 +94,29 @@ def param_fit_grid_search(df, T, x_0, g_values, c_values, alpha_values, gamma_va
 
 
 # Function to create 2D heatmaps
-def plot_heatmap(matrix, x_values, y_values, x_label, y_label, title):
-    plt.imshow(
+def plot_heatmap(matrix, y_values, x_values, y_label, x_label, title, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots()
+    img = ax.imshow(
         matrix,
         cmap="viridis",
         aspect="auto",
         origin="lower",
         extent=[x_values[0], x_values[-1], y_values[0], y_values[-1]],
     )
-    plt.colorbar(label="Log Likelihood")
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.title(title)
-    plt.show()
+    # ax.set_xticks(np.linspace(x_values[0], x_values[-1], num=len(x_values)))
+    # ax.set_yticks(np.linspace(y_values[0], y_values[-1], num=len(y_values)))
+    # ax.set_xticklabels([round(val, 2) for val in x_values])
+    # ax.set_yticklabels([round(val, 2) for val in y_values])
+
+    plt.colorbar(img, ax=ax)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_title(title)
+    if ax is None:
+        plt.show()
+
+    return ax
 
 
 # region parallelized parameter fitting
@@ -115,16 +130,16 @@ def param_fit_grid_search_parallel(df, T, x_0, g_values, c_values, alpha_values,
     alpha_values = np.array(alpha_values)
     gamma_values = np.array(gamma_values)
 
-    param_ranges = (g_values, c_values, alpha_values, gamma_values)
+    param_sets = (g_values, c_values, alpha_values, gamma_values)
 
     # Total number of combinations
     total_combinations = len(g_values) * len(c_values) * len(alpha_values) * len(gamma_values)
 
-    def process_chunk(start_idx, end_idx, param_ranges):
+    def process_chunk(start_idx, end_idx, param_sets):
         """
         Worker function to process a range of parameter combinations lazily.
         """
-        g_values, c_values, alpha_values, gamma_values = param_ranges
+        g_values, c_values, alpha_values, gamma_values = param_sets
         results = []
 
         # Generate only the necessary combinations within this range
@@ -147,7 +162,8 @@ def param_fit_grid_search_parallel(df, T, x_0, g_values, c_values, alpha_values,
 
     # Parallel execution: each worker processes a *disjoint range* of combinations
     results = Parallel(n_jobs=n_jobs)(
-        delayed(process_chunk)(start, end, param_ranges) for start, end in tqdm(ranges, desc="Parallel Grid Search")
+        delayed(process_chunk)(start, end, param_sets)
+        for start, end in tqdm(ranges, desc="Parallel Grid Search", leave=False)
     )
 
     # Flatten results

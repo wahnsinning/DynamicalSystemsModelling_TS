@@ -15,7 +15,7 @@ def S(g, net):
     return 1 / (1 + np.exp(-g * net))
 
 
-def perseverence_dynamics_model(t, x, g, alpha, gamma, input, sigma):
+def perseverence_dynamics_model(t, x, g, alpha, gamma, input, feedback, sigma):
     """Dynamical model
 
     ------
@@ -55,17 +55,20 @@ def perseverence_dynamics_model(t, x, g, alpha, gamma, input, sigma):
     # net inputs for the 3 neurons
     net_1 = -w1_2 * x2 + w1_p * P + I1 + sigma * np.random.normal()
     net_2 = -w2_1 * x1 - w2_p * P + I2 + sigma * np.random.normal()
-    net_P = wp_1 * x1 - wp_2 * x2
+
+    x_1_x_2_diff = wp_1 * x1 - wp_2 * x2
+    net_P = gamma * x_1_x_2_diff + alpha * feedback * np.sign(gamma * x_1_x_2_diff)  # + sigma * np.random.normal()
 
     # differential equations for the 3 neurons
     dx1_dt = -x1 + S(g, net_1)
     dx2_dt = -x2 + S(g, net_2)
-    dP_dt = -alpha * P + gamma * net_P  # the added neuron(variable) in the perseverence model
+
+    dP_dt = -P + np.tanh(net_P)
 
     return np.array([dx1_dt, dx2_dt, dP_dt])
 
 
-def simulate_dynamics(T, x_0, g, alpha, gamma, input, sigma, num_sample_points=100):
+def simulate_dynamics(T, x_0, g, alpha, gamma, input, feedback, sigma, num_sample_points=100):
     # integrate differential equation
 
     x_out = solve_ivp(
@@ -73,7 +76,7 @@ def simulate_dynamics(T, x_0, g, alpha, gamma, input, sigma, num_sample_points=1
         np.array([0, T]),
         x_0,  # initial condition
         dense_output=True,  # dense_output = True allows us to compute x at any time points on the interval T
-        args=[g, alpha, gamma, input, sigma],
+        args=[g, alpha, gamma, input, feedback, sigma],
     )  # pass additional arguments to the simulation functon
 
     # extracting simulated values
@@ -103,7 +106,7 @@ def simulate_dynamics(T, x_0, g, alpha, gamma, input, sigma, num_sample_points=1
 # region plotting
 
 
-def plot_trajectory(T, ts, x1, x2, P, num_trials=1, ax=None):
+def plot_trajectory(T, ts, x1, x2, P, input=None, feedback=None, num_trials=1, ax=None):
     # Get the current figure
     fig = plt.gcf()
     fig.clf()  # Clear the figure to prevent overplotting
@@ -120,7 +123,8 @@ def plot_trajectory(T, ts, x1, x2, P, num_trials=1, ax=None):
         ax.legend()  # show the legend
         ax.set_xlabel("t")  # this labels the horizontal axis
         ax.set_ylabel("activity (value of x_i)")  # this labels the vertical axis
-        ax.set_ylim([0, 1.0])
+        # ax.set_ylim([0, 1.0])
+        ax.set_ylim([-0.5, 1.5])
         ax.set_title("Time Trajectories")  # Set the title of the plot
 
     if ax is None:
@@ -132,15 +136,34 @@ def plot_trajectory(T, ts, x1, x2, P, num_trials=1, ax=None):
         ts, P + 0.5, label="P + 0.5", linestyle="-", alpha=0.5
     )  # Time trajectory of P (shifted by 0.5 on y for better fit in the plot)
     ax.axhline(y=0.5, color="red", linestyle="--", alpha=0.3)
-    ax.legend()  # Show the legend
     ax.set_xlabel("t")  # Label the horizontal axis
     ax.set_ylabel("activity (value of x_i)")  # Label the vertical axis
-    ax.set_ylim([0, 1.0])  # Set the y-axis limits
     ax.set_title("Time Trajectories")  # Set the title of the plot
+    ax.set_ylim([-0.5, 1.5])  # Set the y-axis limits
+    # plot tow horizontal lines at y=0 and y=1
+    ax.axhline(y=0, color="black", linestyle="--", alpha=0.3)
+    ax.axhline(y=1, color="black", linestyle="--", alpha=0.3)
 
     # Add vertical lines for trials
-    for trial_number in range(num_trials):
-        trial_number += 1
-        ax.axvline(T * trial_number, color="gray", linestyle="--")
+    for trial_number in range(num_trials + 1):
+        color = "black"
+        if feedback is not None and trial_number < len(feedback):
+            if feedback[trial_number] == -1:
+                color = "red"
+            elif feedback[trial_number] == 1:
+                color = "green"
+        ax.axvline(T * trial_number, linestyle="--", color=color)
+    # add inputs as scatter points on the plot
+    if input is not None:
+        ax.scatter(
+            [T * trial_number for trial_number in range(num_trials)],
+            input,
+            color="black",
+            s=50,
+            label="input/task",
+            marker="D",
+        )
+
+    ax.legend()  # Show the legend
     plt.draw()  # Ensure the updated plot is rendered
-    plt.pause(0.001)  # Pause to allow the plot to update
+    plt.pause(0.01)  # Pause to allow the plot to update
