@@ -1,5 +1,5 @@
-data/*
-data_cleaned/*
+data/*.json
+data_cleaned/*.csv
 plots/*
 
 # Byte-compiled / optimized / DLL files
