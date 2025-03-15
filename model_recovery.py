@@ -6,18 +6,7 @@ from tqdm.notebook import tqdm
 
 from model_simulation import simulate_experiment
 from parameter_fitting import param_fit_grid_search_parallel
-
-
-def BIC(LL, k, n):
-    """Compute the Bayesian Information Criterion
-
-    Inputs
-    -------
-    LL: log likelihood
-    k: number of parameters
-    n: number of data points
-    """
-    return -2 * LL + k * np.log(n)
+from model_comparison import model_fit, BIC
 
 
 def model_recovery(
@@ -34,11 +23,11 @@ def model_recovery(
     gamma_values,
     sigma=0.2,
     tau_P=1,
-    models_to_consider=(0, 1, 2, 3),
+    model_names=["base", "perseverance", "feedback", "PF"],
 ):
 
     num_true_param_set = len(sampled_g)
-    num_models = len(models_to_consider)
+    num_models = len(model_names)
     if (
         len(sampled_c) != num_true_param_set
         or len(sampled_alpha) != num_true_param_set
@@ -74,22 +63,22 @@ def model_recovery(
 
             # fit all models to the data
             BIC_values = []
-            if 0 in models_to_consider:
+            if "base" in model_names:
                 _, LL_base, _ = param_fit_grid_search_parallel(
                     df, T, x_0, g_values, c_values, np.zeros(1), np.zeros(1), sigma, tau_P
                 )
                 BIC_values.append(BIC(LL_base, 2, num_trials))
-            if 1 in models_to_consider:
+            if "perseverance" in model_names:
                 _, LL_P, _ = param_fit_grid_search_parallel(
                     df, T, x_0, g_values, c_values, np.zeros(1), gamma_values, sigma, tau_P
                 )
                 BIC_values.append(BIC(LL_P, 3, num_trials))
-            if 2 in models_to_consider:
+            if "feedback" in model_names:
                 _, LL_F, _ = param_fit_grid_search_parallel(
                     df, T, x_0, g_values, c_values, alpha_values, np.zeros(1), sigma, tau_P
                 )
                 BIC_values.append(BIC(LL_F, 3, num_trials))
-            if 3 in models_to_consider:
+            if "PF" in model_names:
                 _, LL_PF, _ = param_fit_grid_search_parallel(
                     df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma, tau_P
                 )
@@ -109,8 +98,8 @@ def model_recovery(
     inverse_matrix = best_fit_matrix / np.sum(best_fit_matrix, axis=1, keepdims=True)
 
     # replace the ids of the models in the true and fitted model arrays with the actual model ids passed in models
-    true_model = np.array([models_to_consider[model] for model in true_model])
-    fitted_model = np.array([models_to_consider[model] for model in fitted_model])
+    true_model = np.array([model_names[model] for model in true_model])
+    fitted_model = np.array([model_names[model] for model in fitted_model])
     # df of true and fitted models
     true_fitted_df = pd.DataFrame({"true_model": true_model, "fitted_model": fitted_model})
 
