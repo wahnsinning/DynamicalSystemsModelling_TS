@@ -58,13 +58,13 @@ def plot_accuracy_per_condition(df, ax=None):
 
     # If a new figure was created, display the plot
     if created_fig:
-        plt.show()
+        plt.draw()
 
 
 import matplotlib.pyplot as plt
 
 
-def analyze_accuracy_by_previous_repeats(df, df_name, ax=None):
+def analyze_accuracy_by_previous_repeats(df, title="", ax=None):
     """
     Analyzes and plots accuracy based on the number of preceding consecutive repeat trials.
     """
@@ -92,17 +92,17 @@ def analyze_accuracy_by_previous_repeats(df, df_name, ax=None):
         linestyle="-",
         color="b",
     )
-    ax.set_xlabel("Number of Previous Consecutive Repeat Trials")
+    ax.set_xlabel("Consecutive Repeat")
     ax.set_ylabel("Accuracy")
-    ax.set_title(f"Accuracy vs. Number of Previous Consecutive Repeat Trials\n({df_name})")
+    ax.set_title(title)
     ax.grid(True)
     ax.set_ylim(0, 1)
 
     if ax is None:
-        plt.show()
+        plt.draw()
 
 
-def analyze_accuracy_by_previous_switches(df, df_name, ax=None):
+def analyze_accuracy_by_previous_switches(df, title="", ax=None):
     """
     Analyzes and plots accuracy based on the number of preceding consecutive switch trials.
     """
@@ -130,17 +130,17 @@ def analyze_accuracy_by_previous_switches(df, df_name, ax=None):
         linestyle="-",
         color="r",
     )
-    ax.set_xlabel("Number of Previous Consecutive Switch Trials")
+    ax.set_xlabel("Consecutive Switch")
     ax.set_ylabel("Accuracy")
-    ax.set_title(f"Accuracy vs. Number of Previous Consecutive Switch Trials\n({df_name})")
+    ax.set_title(title)
     ax.grid(True)
     ax.set_ylim(0, 1)
 
     if ax is None:
-        plt.show()
+        plt.draw()
 
 
-def analyze_switch_accuracy_after_repeats(df, df_name, ax=None):
+def analyze_switch_accuracy_after_repeats(df, title="", ax=None):
     """
     Analyzes and plots accuracy of switch trials based on the number of preceding consecutive repeat trials.
     """
@@ -168,17 +168,17 @@ def analyze_switch_accuracy_after_repeats(df, df_name, ax=None):
         linestyle="-",
         color="g",
     )
-    ax.set_xlabel("Number of Previous Consecutive Repeat Trials")
-    ax.set_ylabel("Accuracy of Following Switch Trial")
-    ax.set_title(f"Accuracy of Switch Trials vs. Previous Repeat Trials\n({df_name})")
+    ax.set_xlabel("Consecutive Repeat")
+    ax.set_ylabel("Accuracy Following Switch")
+    ax.set_title(title)
     ax.grid(True)
     ax.set_ylim(0, 1)
 
     if ax is None:
-        plt.show()
+        plt.draw()
 
 
-def analyze_repeat_accuracy_after_switches(df, df_name, ax=None):
+def analyze_repeat_accuracy_after_switches(df, title="", ax=None):
     """
     Analyzes and plots accuracy of repeat trials based on the number of preceding consecutive switch trials.
     """
@@ -206,11 +206,11 @@ def analyze_repeat_accuracy_after_switches(df, df_name, ax=None):
         linestyle="-",
         color="purple",
     )
-    ax.set_xlabel("Number of Previous Consecutive Switch Trials")
-    ax.set_ylabel("Accuracy of Following Repeat Trial")
-    ax.set_title(f"Accuracy of Repeat Trials vs. Previous Switch Trials\n({df_name})")
+    ax.set_xlabel("Consecutive Switch")
+    ax.set_ylabel("Accuracy Following Repeat")
+    ax.set_title(title)
     ax.grid(True)
     ax.set_ylim(0, 1)
 
     if ax is None:
-        plt.show()
+        plt.draw()

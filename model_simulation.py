@@ -18,7 +18,7 @@ def compute_choice_probabilities(activities_n_final, trial_number, c):
     """
 
     # compute beta
-    beta = pow((trial_number + 1) / 10, c)
+    beta = np.power((trial_number + 1) / 10, c)
 
     # scaling factor (small differences between neuron activities are magnified, which makes the exponential terms more distinct)
     scalar = 3
@@ -148,7 +148,20 @@ def log_data(df, trial_number, activities_n_final, current_task, trial_type, cho
     return df
 
 
-def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot_trajectory=False, task_sequence=None):
+def simulate_experiment(
+    num_trials,
+    T,
+    x_0,
+    g,
+    c,
+    alpha,
+    gamma,
+    sigma,
+    tau_P=1,
+    num_sample_points_per_trial=100,
+    bool_plot_trajectory=False,
+    task_sequence=None,
+):
 
     if task_sequence is not None:
         num_trials = len(task_sequence)
@@ -181,7 +194,6 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
     array_P = []
     array_ts = []
 
-    num_sample_points_per_trial = 100
     feedback = 0  # feedback of first trail is 0 (neutral) correct -> 1, wrong -> -1
     feedback_log = [feedback]
     for trial_number in range(num_trials):
@@ -199,7 +211,7 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
             trial_type = None
 
         ts_values, x1_values, x2_values, P_values = simulate_dynamics(
-            T, x_0, g, alpha, gamma, input, feedback, sigma, num_sample_points=num_sample_points_per_trial
+            T, x_0, g, alpha, gamma, input, feedback, sigma, tau_P, num_sample_points=num_sample_points_per_trial
         )  # run model i.e. solve OED
 
         activities_n_final = np.array([x1_values[-1], x2_values[-1]])  # get last values of neuron activity
@@ -216,6 +228,7 @@ def simulate_experiment(num_trials, T, x_0, g, c, alpha, gamma, sigma, bool_plot
         # feedback of the current trail
         feedback = 1 if correctness == 1 else -1
         feedback_log.append(feedback)
+
         # log results
         df = log_data(
             df, trial_number, activities_n_final, current_task, trial_type, choice, correct_responses, correctness

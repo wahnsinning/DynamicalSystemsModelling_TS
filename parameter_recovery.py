@@ -1,7 +1,10 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm.notebook import tqdm
 from ctypes import ArgumentError
+from scipy.stats import pearsonr
+
 from model_simulation import simulate_experiment
 from parameter_fitting import param_fit_grid_search_parallel
 
@@ -19,6 +22,7 @@ def param_recovery(
     alpha_values,
     gamma_values,
     sigma=0.2,
+    tau_P=1,
 ):
     # make sure all parameters to recover have the same number of values
     num_true_param_set = len(to_recover_g)
@@ -59,12 +63,12 @@ def param_recovery(
         true_gamma_log[run] = true_gamma
 
         # Simulate surrogate data
-        df = simulate_experiment(num_trials, T, x_0, true_g, true_c, true_alpha, true_gamma, sigma)
-        # best_g, best_c, best_alpha, best_gamma, best_LL, LL_matrix = param_fit_grid_search(df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma,pbar_start_pos=1)
-        best_g, best_c, best_alpha, best_gamma, best_LL, LL_matrix = param_fit_grid_search_parallel(
-            df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma
+        df = simulate_experiment(num_trials, T, x_0, true_g, true_c, true_alpha, true_gamma, sigma, tau_P)
+        best_params, best_LL, LL_matrix = param_fit_grid_search_parallel(
+            df, T, x_0, g_values, c_values, alpha_values, gamma_values, sigma, tau_P
         )
 
+        best_g, best_c, best_alpha, best_gamma = best_params
         # Store the parameter combination yielding the highest log likelihood
         fitted_g_log[run] = best_g
         fitted_c_log[run] = best_c
@@ -75,9 +79,48 @@ def param_recovery(
     return fitted_g_log, fitted_c_log, fitted_alpha_log, fitted_gamma_log, LL_log
 
 
+def summarize_paramRecovery_results(
+    param_names, true_g, true_c, true_alpha, true_gamma, fitted_g, fitted_c, fitted_alpha, fitted_gamma, LL
+):
+    # make a df of the results
+    results_df = pd.DataFrame(
+        {
+            "true_g": true_g,
+            "true_c": true_c,
+            "true_alpha": true_alpha,
+            "true_gamma": true_gamma,
+            "fitted_g": fitted_g,
+            "fitted_c": fitted_c,
+            "fitted_alpha": fitted_alpha,
+            "fitted_gamma": fitted_gamma,
+            "LL": LL,
+        }
+    )
+
+    # calculate the Pearson correlation coefficient for each parameter
+    corr_true_fitted = [pearsonr(results_df[f"true_{param}"], results_df[f"fitted_{param}"]) for param in param_names]
+    # results of base model
+    inter_corr = pd.DataFrame(corr_true_fitted, columns=["correlation", "p-value"], index=param_names, dtype=float)
+    inter_corr.index.name = "parameter"
+    # round correlation values
+    inter_corr["correlation"] = inter_corr["correlation"].round(3)
+    # convert p values into scientific notation
+    inter_corr["p-value"] = inter_corr["p-value"].apply(lambda x: "%.2e" % x)
+    # calculate pairwise cross correlation between the parameters (fitted values of different parameters)
+    cross_corr = results_df[["fitted_g", "fitted_c", "fitted_alpha", "fitted_gamma"]].corr(
+        method=lambda x, y: pearsonr(x, y)[0]
+    )
+    return results_df, inter_corr, cross_corr
+
+
+# region plotting
+
+
 def plot_true_fitted_correlation(true_params, fitted_params, param_range, margin=0.1, ax=None):
+    show_plot = False
     if ax is None:
         ax = plt.gca()
+        show_plot = True
     ax.scatter(true_params, fitted_params, marker="o", color="red")
     ax.set_xlabel("True")
     ax.set_ylabel("Fitted")
@@ -85,6 +128,26 @@ def plot_true_fitted_correlation(true_params, fitted_params, param_range, margin
     ax.set_xlim([np.min(param_range) - pad, np.max(param_range) + pad])
     ax.set_ylim([np.min(param_range) - pad, np.max(param_range) + pad])
     # ax.set_aspect('equal')
-    if ax == None:
-        plt.show()
+    if show_plot:
+        plt.draw()
+    return ax
+
+
+def plot_cross_correlation(cross_corr, param_names, ax=None):
+    show_plot = False
+    if ax is None:
+        ax = plt.gca()
+        show_plot = True
+    im = ax.imshow(cross_corr, cmap="coolwarm", vmin=-1, vmax=1)
+    for i in range(len(param_names)):
+        for j in range(len(param_names)):
+            ax.text(j, i, cross_corr.iloc[i, j].round(2), ha="center", va="center", color="black")
+    ax.set_xticks(range(len(param_names)))
+    ax.set_yticks(range(len(param_names)))
+    ax.set_xticklabels(param_names, rotation=45)
+    ax.set_yticklabels(param_names)
+    plt.colorbar(im, ax=ax, shrink=0.75)
+
+    if show_plot:
+        plt.draw()
     return ax
